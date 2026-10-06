@@ -1,10 +1,24 @@
 # Gcotu-Tuned SEGI Plus
 
 <p align="center" width="100%">
-<img alt="SEGI Plus Logo" src="./About/Thumb.png" width="45%" />
+<img alt="Stationeers with Gcotu-Tuned SEGI Plus: a machine room with soft bounce light and a glowing lamp" src="./docs/images/stationeers-with-gcotu-tuned-segi-plus.png" width="100%" />
 </p>
 
 **This is a fork of [Beef's SEGI Plus](https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus) 1.4.5 by Gcotu**, adding more lighting and look controls. It is a separate mod with its own ID; disable Beef's SEGI Plus while this one is enabled. All credit for the underlying mod goes to Beef and the authors listed under Credits.
+
+## What it looks like
+
+The same scene in Stationeers without any graphical mod (an unedited in-game screenshot):
+
+<img alt="The same machine room in Stationeers without any graphical mod: flat, mostly black shadows" src="./docs/images/stationeers-without-mod.png" width="100%" />
+
+The picture at the top of this page is the same scene with Gcotu-Tuned SEGI Plus (also straight from the game, with no color editing or glow added afterward).
+
+### Eye Adaptation
+
+From far away, a lit screen glows but is unreadable. Once you get close, your eyes adapt and it becomes readable.
+
+<img alt="Top: a dark room with a glowing, unreadable screen in the distance. Bottom: the same screen up close, readable after eye adaptation" src="./docs/images/eye-adaptation.png" width="55%" />
 
 ## What this fork adds
 
@@ -72,113 +86,12 @@ Built upon the work of:
 - **Christoph Peters** (blue-noise texture used for dithering, CC0)
 
 ## Changelog
->### Version 1.4.5
-> - Build for Power Line Update
 
->### Version 1.4.4
->- Build for new game update
->- Fix thumbnail
->- Add "Advanced" section with occlusion settings
+### 1.4.5-lab23 (first public release of this fork)
+- Based on Beef's SEGI Plus 1.4.5
+- Adds the features listed under "What this fork adds"
 
->### Version 1.4.3:
->- Potential fix for Vulkan (Linux performance improvements woooo)
-
->### Version 1.4.2:
->- Add option to enable/disable forwards bias of voxel volume
->- Fix flickering shadows from point lights
->- Add a new maximum quality level
-
->### Version 1.4.1:
->- Guard around NRE on init/settings change
->- fix tiger striping on cave ceilings
->- mostly fix geometry self-illuminating if the cave ceiling is far enough underground that the ground isn't in voxel volume in high density mode - with a small gap between ceiling and e.g. steel frame it will still self illuminate for now
-
->### Version 1.4.0:
->- Major rendering pipeline rewrite (again), likely you will want to revisit which settings you use (again)
->- Less ghosting/noise
->- Added Emissive Light Gain setting to control emissive brightness separately from overall GI
->- Added Emissive Bubble toggle to prevent held items and suit from glowing
->- Added High Density Mode option at High/Extreme quality — twice the detail but half the range
->- Fix some objects falsely detected as emissive
->- Adaptive performance now takes 15 seconds between changes
->- Removed Day/Night Ambient Brightness sliders, now handled properly and automatically
->- Removed Near Light Gain as it is ugly, replaced by Emissive Light Gain which controls emissive surfaces separate from sun contribution
->- Secondary Bounce Gain is capped lower to prevent runaway brightness explosions
-
->### Version 1.3.1:
->- Hotfix to reduce artifacting/visual "snow"
-
->### Version 1.3.0:
->- Major performance improvements, likely you will want to revisit which settings you use
->- Lightweight mode likely has little performance improvement when enabled, adaptive performance with reduce distance first strategy is likely the ideal for most cases
-
->### Version 1.2.6:
->- Non-emissive geometry now cached and re-used across frames. Scrolled with camera movement
->- Scene geometry batched across 8 frames
->- Emissive geometry is rendered per-frame and merged with cached non-emissive geometry
->- Sun shadow geometry is updated every 120 frames instead of per-frame
->- Fix issue disabling/re-enabling SEGI Plus in config menu
-
->### Version 1.2.5:
->- Minor performance improvements, primarily caching and reusing data where possible
-
->### Version 1.2.4:
->- Fix glowing robots, they no longer glow wildly
-
->### Version 1.2.3:
->- Another pass on adaptive performance
->- Only two strategies now: Balanced and Reduce Distance first
->- Added min distance option for reduce distance first
->- Properly handle when desired framerate is set above in-game framerate limiter
-
->### Version 1.2.2:
->- Another pass on adaptive performance
->- Only two strategies now: Balanced and Reduce Distance first
->- Added min distance option for reduce distance first
->- Properly handle when desired framerate is set above in-game framerate limiter
-
->### Version 1.2.2:
-> - Shrunk F11 menu slightly
-> - Added color backgrounds to each section to improve understanding of grouping as it's getting crowded
-> - Added Adaptive Strategy option to adjust what's prioritized in adaptive performance mode
-> - Added long-term accumulator for adaptive to bump quality up slightly when framerate stays stable but slightly below target
-
->### Version 1.2.1:
-> - Widened adaptive framerate slider choices
-> - Automatically remove/mark read the major update popup if go into world
-> - Added an x10 multiplier option if you want to play around with silly gain values
-> - Darkened background of F11 menu slightly
-
->### Version 1.2.0:
-> - Added first pass of adaptive framerate control that works with the quality setting to try and improve performance
-> - This can be used at any quality setting and with or without lightweight mode
-> - This isn't automatically enabled as it's yet experimental - you can enable this in settings
-
->### Version 1.1.1
-> - Improved lightweight mode cleanup
-> - I inverted the new sun calc like a big dumb
-
->### Version 1.1.0
->- Added more info to the F11 menu to help with understanding settings
->- Fixed F11 menu breaking when returning or used in main menu/splash screens
->- Added F11 menu scaling so it is bigger at 1440/4k
->- Better day/night transition (now transitions between 2-10 degrees sun elevation instead of +5/-5 deg)
->- Added Advanced Furnace to object exclusion list in lightweight mode
->- Thanks **BassManDan** for your feedback helping get this update done quickly 
-
->### Version 1.0.0
->- Updated plugin architecture for current Stationeers version
->- Added lightweight rendering with cached object culling
->- Implemented quality preset system
->- Improved scene management and layer culling
->- Day/night diffuse light adjustments
->- Updated SEGI shaders for Stationeers compatibility
-
-## Roadmap
-- [ ] add more text explanations if needed
-- [ ] see if i can cull out the interaction boxes because these are annoying when they glow
-- [ ] check sensor lenses/nvgs/etc and see if there's anything there to cull too
-- [ ] find what other items need to be culled in lightweight mode since they're giant beacons of light
+The history of Beef's SEGI Plus up to 1.4.5 (versions 1.0.0 to 1.4.5) is the work of TheRealBeef and is documented in his repository: [https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus](https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus)
 
 ## Source Code
 
