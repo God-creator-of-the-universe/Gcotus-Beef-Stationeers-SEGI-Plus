@@ -26,23 +26,19 @@ New compared to Beef's SEGI Plus:
 
 - No more color banding: adjustable blue-noise dithering (it also improves banding in the base game's own lighting)
 - No more pitch-black shadows behind obstacles: adjustable shadowless Lamp Fill Light
-- Eye Adaptation now also fades Screen Gamma, not just GI Gain, and measures the brightness of the center 50% of the screen
+- Eye Adaptation fades Screen Gamma and GI Gain (brightness measured in 50% h/v screen center)
 - GI strength adjustable per color channel (Red / Green / Blue)
-- Fill lights, such as the flashlight, no longer reflect in windows and glossy surfaces
-- Fixed: the F11 panel no longer turns transparent after loading a second world
-
-Also changed or extended:
-
-- F9 turns the effect on and off at any time, for easy comparison
-- Flashlight Fill Light: the flashlight lights up its surroundings instead of being detached from the global illumination
+- Fill lights for flashlight (No more tunnel vision!) and room lights (No more brutal shadows!), and those don't reflect in windows and glossy surfaces.
+- The F11 GUI panel no longer turns transparent after loading a second world
+- F9 turns the mod's effects entirely on/off at any time, for easy comparison
 - GI gamma, gain and toe (shadow crush) adjustment
-- Longer GI render range, even in High Density mode, through a range step slider
+- Optional longer GI render range in High Density mode
 - Screen-space bloom and Screen Gamma
-- Greater slider ranges
+- Greater SEGI slider ranges
 - Calmer, less colorful F11 panel with a full-size on/off button
-- An "apply Gcotu defaults" button for the author's preferred settings
+- An "apply Gcotu defaults" button for my preferred settings
 
-Everything below is Beef's original description of SEGI Plus.
+## Everything below is Beef's original description of SEGI Plus
 
 There is an in-game config menu with F11.
 
