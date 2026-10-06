@@ -81,6 +81,10 @@ Built upon the work of:
 - **Vinus** (previous implementation): [https://github.com/TerameTechYT/StationeersSharp/tree/development/Source/SEGIMod](https://github.com/TerameTechYT/StationeersSharp/tree/development/Source/SEGIMod)
 - **Christoph Peters** (blue-noise texture used for dithering, CC0)
 
+## Support
+
+This fork is maintained on a best-effort basis. It works with the version of Stationeers it was released for and may break after game updates.
+
 ## Changelog
 
 ### 1.4.5-lab23 (first public release of this fork)
