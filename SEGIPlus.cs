@@ -78,6 +78,7 @@ public class SEGIStationeers : MonoBehaviour
     private const float AdaptiveChangeCooldown = 15.0f;
     private int _prevQualityLevel = -1;
     private bool _prevDenseVoxelMode = false;
+    private int _prevHighDensityRangeStep = 0;
     private int _prevAdaptiveStrategy = -1;
     private int _prevTargetFramerate = -1;
     private bool _prevAdaptivePerformance = false;
@@ -175,7 +176,7 @@ public class SEGIStationeers : MonoBehaviour
         Ultra = 448
     }
 
-    private float VoxelScaleFactor => (float)ConfigData.VoxelResolution / 256.0f;
+    private float VoxelScaleFactor => (float)ConfigData.EffectiveVoxelResolution / 256.0f;
     private Material material;
     private Camera attachedCamera;
     private Transform shadowCameraTransform;
@@ -446,7 +447,9 @@ public class SEGIStationeers : MonoBehaviour
         {
             int curQuality = SEGIPlugin.QualityLevel?.Value ?? 1;
             bool curDense = ConfigData.DenseVoxelMode;
-            if (curQuality != _prevQualityLevel || curDense != _prevDenseVoxelMode)
+            int curRangeStep = ConfigData.HighDensityRangeStep;
+            if (curQuality != _prevQualityLevel || curDense != _prevDenseVoxelMode ||
+                curRangeStep != _prevHighDensityRangeStep)
             {
                 if (_prevQualityLevel >= 0)
                 {
@@ -457,6 +460,7 @@ public class SEGIStationeers : MonoBehaviour
                 }
                 _prevQualityLevel = curQuality;
                 _prevDenseVoxelMode = curDense;
+                _prevHighDensityRangeStep = curRangeStep;
             }
 
             int curStrategy = ConfigData.AdaptiveStrategy;
@@ -1447,12 +1451,13 @@ public class SEGIStationeers : MonoBehaviour
                 DispatchTemporalBlend(gi4, gi3);
             }
 
-            //Set the result to be accessed in the shader
-            material.SetTexture("GITexture", gi3);
+            // Per-channel amplification, then tone the GI add-layer (gamma/toe), before compositing into the scene.
+            RenderTexture giForBlend = GIToneMap.Apply(GIChannelGain.Apply(gi3));
+            material.SetTexture("GITexture", giForBlend);
 
             //Actually apply the GI to the scene using gbuffer data
             if (!Profiler.ShouldSkip("FinalComposite"))
-                Graphics.Blit(source, destination, material, visualizeGI ? Pass.VisualizeGI : Pass.BlendWithScene);
+                CompositeAndScreenPost(source, destination, visualizeGI ? Pass.VisualizeGI : Pass.BlendWithScene);
             else
                 Graphics.Blit(source, destination);
         }
@@ -1467,11 +1472,12 @@ public class SEGIStationeers : MonoBehaviour
                 DispatchTemporalBlend(temporalSrc, temporalDst);
             }
 
-            //Actually apply the GI to the scene using gbuffer data
-            material.SetTexture("GITexture", ConfigData.TemporalBlendWeight < 1.0f ? temporalDst : filtered);
+            RenderTexture giFull = ConfigData.TemporalBlendWeight < 1.0f ? temporalDst : filtered;
+            RenderTexture giForBlend = GIToneMap.Apply(GIChannelGain.Apply(giFull));
+            material.SetTexture("GITexture", giForBlend);
 
             if (!Profiler.ShouldSkip("FinalComposite"))
-                Graphics.Blit(source, destination, material, visualizeGI ? Pass.VisualizeGI : Pass.BlendWithScene);
+                CompositeAndScreenPost(source, destination, visualizeGI ? Pass.VisualizeGI : Pass.BlendWithScene);
             else
                 Graphics.Blit(source, destination);
         }
@@ -1492,6 +1498,34 @@ public class SEGIStationeers : MonoBehaviour
 
         //Advance the frame counter
         frameCounter = (frameCounter + 1) % 64;
+    }
+
+    private void CompositeAndScreenPost(RenderTexture source, RenderTexture destination, int pass)
+    {
+        bool wantsEyeAdaptation = SEGIPlugin.EyeAdaptationEnabled?.Value ?? false;
+        if (!ScreenPost.NeedsAny && !wantsEyeAdaptation)
+        {
+            Graphics.Blit(source, destination, material, pass);
+            return;
+        }
+
+        // Blend into a temp, then bloom/screen-gamma, then copy out.
+        // Also the eye-adaptation brightness measurement's only view of the final
+        // frame - forced down this path (instead of the fast direct-blit above)
+        // whenever eye adaptation is on, even if bloom/screen-gamma are both inert.
+        RenderTexture composite = RenderTexture.GetTemporary(
+            source.width, source.height, 0, RenderTextureFormat.ARGBHalf);
+        try
+        {
+            Graphics.Blit(source, composite, material, pass);
+            RenderTexture processed = ScreenPost.Apply(composite);
+            if (wantsEyeAdaptation) EyeAdaptation.Tick(processed);
+            Graphics.Blit(processed, destination);
+        }
+        finally
+        {
+            RenderTexture.ReleaseTemporary(composite);
+        }
     }
 
     private void SetComputeTraceUniforms(int kernel)
@@ -1735,6 +1769,9 @@ public class SEGIStationeers : MonoBehaviour
         if (atrousFilterCompute != null)
         {
             _atrousKernel = atrousFilterCompute.FindKernel("ATrousFilter");
+            GIToneMap.Ensure(atrousFilterCompute);
+            GIChannelGain.Ensure(atrousFilterCompute);
+            ScreenPost.Ensure(atrousFilterCompute);
         }
         sunBakeCompute = SegiBeefEdit.LoadAsset<ComputeShader>("SEGISunBakeBeefEdit");
         if (sunBakeCompute != null)
@@ -1874,7 +1911,7 @@ public class SEGIStationeers : MonoBehaviour
 
         ResetFrameTimeTracking();
         currentAdaptiveScale = 1.0f;
-        adaptiveMaxVoxelRes = (int)ConfigData.VoxelResolution;
+        adaptiveMaxVoxelRes = ConfigData.EffectiveVoxelResolution;
         adaptiveMaxVoxelSpaceSize = ConfigData.VoxelSpaceSize;
         adaptiveMaxShadowSpaceSize = ConfigData.ShadowSpaceSize;
         adaptiveMaxCones = ConfigData.Cones;
@@ -2756,6 +2793,10 @@ public class SEGIStationeers : MonoBehaviour
 
     private void Cleanup()
     {
+        GIToneMap.Cleanup();
+        GIChannelGain.Cleanup();
+        ScreenPost.Cleanup();
+        EyeAdaptation.Cleanup();
         CleanupRobotEmissionFix();
 
         if (_emissiveCacheCoroutine != null)
@@ -3002,7 +3043,7 @@ public class SEGIStationeers : MonoBehaviour
     {
         if (!ConfigData.AdaptivePerformance)
         {
-            adaptiveVoxelResolution = (int)ConfigData.VoxelResolution;
+            adaptiveVoxelResolution = ConfigData.EffectiveVoxelResolution;
             adaptiveVoxelSpaceSize = ConfigData.VoxelSpaceSize;
             adaptiveShadowSpaceSize = ConfigData.ShadowSpaceSize;
             adaptiveCones = ConfigData.Cones;
@@ -3015,7 +3056,7 @@ public class SEGIStationeers : MonoBehaviour
         }
 
         int adaptiveStrategy = ConfigData.AdaptiveStrategy;
-        adaptiveMaxVoxelRes = (int)ConfigData.VoxelResolution;
+        adaptiveMaxVoxelRes = ConfigData.EffectiveVoxelResolution;
         adaptiveMaxVoxelSpaceSize = ConfigData.GetAdaptiveMaxVoxelSpaceSize(adaptiveStrategy);
         adaptiveMaxShadowSpaceSize = adaptiveMaxVoxelSpaceSize * 0.75f;
         adaptiveMaxCones = ConfigData.Cones;

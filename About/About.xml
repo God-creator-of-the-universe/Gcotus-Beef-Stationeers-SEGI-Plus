@@ -1,11 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetadata xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <Name>Beef's SEGI Plus</Name>
-    <Author>TheRealBeef</Author>
-    <Version>1.4.5</Version>
+    <Name>Gcotu-Tuned SEGI Plus</Name>
+    <Author>Gcotu (fork of TheRealBeef's SEGI Plus)</Author>
+    <Version>1.4.5-lab23</Version>
 
     <Description>
-        [h1]Beef's SEGI Plus[/h1]
+        [h1]Gcotu-Tuned SEGI Plus[/h1]
+        A fork of Beef's SEGI Plus 1.4.5 with additional lighting and look controls. It is a separate mod: disable Beef's SEGI Plus while this one is enabled.
+
+        Added in this fork:
+        - No more color banding: adjustable blue-noise dithering (it also improves banding in the base game's own lighting)
+        - No more pitch-black shadows behind obstacles: adjustable shadowless Lamp Fill Light
+        - Eye Adaptation now also fades Screen Gamma, not just GI Gain, and measures the brightness of the center 50% of the screen
+        - GI strength adjustable per color channel (Red / Green / Blue)
+        - Fill lights, such as the flashlight, no longer reflect in windows and glossy surfaces
+        - Fixed: the F11 panel no longer turns transparent after loading a second world
+
+        Also changed or extended:
+        - F9 turns the effect on and off at any time, for easy comparison
+        - Flashlight Fill Light: the flashlight lights up its surroundings instead of being detached from the global illumination
+        - GI gamma, gain and toe (shadow crush) adjustment
+        - Longer GI render range, even in High Density mode, through a range step slider
+        - Screen-space bloom and Screen Gamma
+        - Greater slider ranges
+        - Calmer, less colorful F11 panel with a full-size on/off button
+        - An "apply Gcotu defaults" button for the author's preferred settings
+
         [b]WARNING:[/b] This is a StationeersLaunchPad Plugin Mod. It requires BepInEx to be installed with the StationeersLaunchPad plugin.
         See: https://github.com/StationeersLaunchPad/StationeersLaunchPad
 
@@ -31,11 +51,15 @@
 
         Configuration available through F11 in-game menu, StationeersLaunchPad config, or BepInEx config files.
 
-        Source Code: https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus
+        Original mod (Beef's SEGI Plus): https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus
+        This fork: https://github.com/God-creator-of-the-universe/Gcotus-Beef-Stationeers-SEGI-Plus
     </Description>
 
     <ChangeLog>
-        1.4.5
+        1.4.5-lab23
+        - First public release of the Gcotu-Tuned fork, based on Beef's SEGI Plus 1.4.5
+
+        Beef's SEGI Plus 1.4.5 (original)
         - Build for Power Line Update
 
         1.4.4
@@ -134,8 +158,6 @@
         - Updated config menu system
     </ChangeLog>
 
-    <WorkshopHandle>3573780489</WorkshopHandle>
-
     <Tags>
         <Tag>Graphics</Tag>
         <Tag>Lighting</Tag>
@@ -145,7 +167,27 @@
 
     <InGameDescription>
         <![CDATA[
-<size=30><color=#ffa500>Beef's SEGI Plus</color></size>
+<size=30><color=#ffa500>Gcotu-Tuned SEGI Plus</color></size>
+A fork of Beef's SEGI Plus 1.4.5 with additional lighting and look controls. Disable Beef's SEGI Plus while this one is enabled.
+
+Added in this fork:
+- No more color banding: adjustable blue-noise dithering (it also improves banding in the base game's own lighting)
+- No more pitch-black shadows behind obstacles: adjustable shadowless Lamp Fill Light
+- Eye Adaptation now also fades Screen Gamma, not just GI Gain, and measures the brightness of the center 50% of the screen
+- GI strength adjustable per color channel (Red / Green / Blue)
+- Fill lights, such as the flashlight, no longer reflect in windows and glossy surfaces
+- Fixed: the F11 panel no longer turns transparent after loading a second world
+
+Also changed or extended:
+- F9 turns the effect on and off at any time, for easy comparison
+- Flashlight Fill Light: the flashlight lights up its surroundings instead of being detached from the global illumination
+- GI gamma, gain and toe (shadow crush) adjustment
+- Longer GI render range, even in High Density mode, through a range step slider
+- Screen-space bloom and Screen Gamma
+- Greater slider ranges
+- Calmer, less colorful F11 panel with a full-size on/off button
+- An "apply Gcotu defaults" button for the author's preferred settings
+
 <b>WARNING:</b> <color=#ff0000>This is a StationeersLaunchPad Plugin Mod. It requires BepInEx to be installed.</color>
 See: https://github.com/StationeersLaunchPad/StationeersLaunchPad
 
@@ -164,7 +206,8 @@ and Vinus (previous implementation): https://github.com/TerameTechYT/Stationeers
 
 Configuration available through F11 in-game menu, StationeersLaunchPad config, or BepInEx config files.
 
-Source Code: https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus
+Original mod (Beef's SEGI Plus): https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus
+This fork: https://github.com/God-creator-of-the-universe/Gcotus-Beef-Stationeers-SEGI-Plus
 ]]>
     </InGameDescription>
 </ModMetadata>

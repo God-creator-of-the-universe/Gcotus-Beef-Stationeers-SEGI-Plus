@@ -1,8 +1,34 @@
-# Beef's SEGI Plus
+# Gcotu-Tuned SEGI Plus
 
 <p align="center" width="100%">
-<img alt="SEGI Plus Logo" src="./About/thumb.png" width="45%" />
+<img alt="SEGI Plus Logo" src="./About/Thumb.png" width="45%" />
 </p>
+
+**This is a fork of [Beef's SEGI Plus](https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus) 1.4.5 by Gcotu**, adding more lighting and look controls. It is a separate mod with its own ID; disable Beef's SEGI Plus while this one is enabled. All credit for the underlying mod goes to Beef and the authors listed under Credits.
+
+## What this fork adds
+
+New compared to Beef's SEGI Plus:
+
+- No more color banding: adjustable blue-noise dithering (it also improves banding in the base game's own lighting)
+- No more pitch-black shadows behind obstacles: adjustable shadowless Lamp Fill Light
+- Eye Adaptation now also fades Screen Gamma, not just GI Gain, and measures the brightness of the center 50% of the screen
+- GI strength adjustable per color channel (Red / Green / Blue)
+- Fill lights, such as the flashlight, no longer reflect in windows and glossy surfaces
+- Fixed: the F11 panel no longer turns transparent after loading a second world
+
+Also changed or extended:
+
+- F9 turns the effect on and off at any time, for easy comparison
+- Flashlight Fill Light: the flashlight lights up its surroundings instead of being detached from the global illumination
+- GI gamma, gain and toe (shadow crush) adjustment
+- Longer GI render range, even in High Density mode, through a range step slider
+- Screen-space bloom and Screen Gamma
+- Greater slider ranges
+- Calmer, less colorful F11 panel with a full-size on/off button
+- An "apply Gcotu defaults" button for the author's preferred settings
+
+Everything below is Beef's original description of SEGI Plus.
 
 There is an in-game config menu with F11.
 
@@ -30,7 +56,7 @@ See: [https://github.com/StationeersLaunchPad/StationeersLaunchPad](https://gith
 ## Installation
 
 1. Ensure you have BepInEx and StationeersLaunchPad installed.
-2. Install from the Steam Workshop, or manually place the DLL file into your `/BepInEx/plugins/` folder.
+2. Download the latest release from this repository's Releases page and extract it into your Stationeers `mods` folder (`Documents/My Games/Stationeers/mods`) as a StationeersLaunchPad Local mod.
 
 ## Usage
 
@@ -39,9 +65,11 @@ Configuration available through F11 in-game menu, StationeersLaunchPad config, o
 ## Credits
 
 Built upon the work of:
+- **TheRealBeef** (SEGI Plus, the mod this is forked from): [https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus](https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus)
 - **Sonic Ether** (original SEGI): [https://github.com/sonicether/SEGI](https://github.com/sonicether/SEGI)
 - **Erdroy** (initial Stationeers port): [https://github.com/Erdroy/Stationeers.SEGI](https://github.com/Erdroy/Stationeers.SEGI)
 - **Vinus** (previous implementation): [https://github.com/TerameTechYT/StationeersSharp/tree/development/Source/SEGIMod](https://github.com/TerameTechYT/StationeersSharp/tree/development/Source/SEGIMod)
+- **Christoph Peters** (blue-noise texture used for dithering, CC0)
 
 ## Changelog
 >### Version 1.4.5
@@ -154,5 +182,8 @@ Built upon the work of:
 
 ## Source Code
 
-The source code is available on GitHub:
-[https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus](https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus)
+This fork: [https://github.com/God-creator-of-the-universe/Gcotus-Beef-Stationeers-SEGI-Plus](https://github.com/God-creator-of-the-universe/Gcotus-Beef-Stationeers-SEGI-Plus)
+
+Original: [https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus](https://github.com/TheRealBeef/Beefs-Stationeers-SEGI-Plus)
+
+Licensed under the MIT licenses in `LICENSE` (Sonic Ether, Erdroy). The fork keeps them unchanged.

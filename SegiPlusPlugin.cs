@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using HarmonyLib;
 using UnityEngine;
 
 namespace BeefsSEGIPlus
@@ -39,10 +40,23 @@ namespace BeefsSEGIPlus
         private bool popupRectInitialized = false;
 
         public static ConfigEntry<bool> Enabled;
+        public static ConfigEntry<KeyboardShortcut> ToggleEnabledHotkey;
         public static ConfigEntry<int> QualityLevel;
         public static ConfigEntry<float> SecondaryBounceGain;
         public static ConfigEntry<float> EmissiveLightGain;
+        public static ConfigEntry<float> GIRedGain;
+        public static ConfigEntry<float> GIGreenGain;
+        public static ConfigEntry<float> GIBlueGain;
         public static ConfigEntry<float> GIGain;
+        public static ConfigEntry<float> GIGamma;
+        public static ConfigEntry<float> GIHighlightGain;
+        public static ConfigEntry<float> GIToe;
+        public static ConfigEntry<float> BloomBlur;
+        public static ConfigEntry<float> BloomGain;
+        public static ConfigEntry<float> BloomGamma;
+        public static ConfigEntry<float> BloomMix;
+        public static ConfigEntry<float> ScreenGamma;
+        public static ConfigEntry<float> DitherStrength;
         public static ConfigEntry<bool> LightweightMode;
         public static ConfigEntry<int> TargetFramerate;
         public static ConfigEntry<bool> AdaptivePerformance;
@@ -51,9 +65,25 @@ namespace BeefsSEGIPlus
         public static ConfigEntry<bool> UseGainMultiplier;
         public static ConfigEntry<bool> EmissiveBubbleEnabled;
         public static ConfigEntry<bool> DenseVoxelMode;
+        public static ConfigEntry<int> HighDensityRangeStep;
         public static ConfigEntry<bool> ForwardOriginBias;
         public static ConfigEntry<float> OcclusionStrengthOffset;
         public static ConfigEntry<float> ConeTraceBiasOffset;
+        public static ConfigEntry<int> InnerOcclusionLayers;
+        public static ConfigEntry<float> FlashlightFillPower;
+        public static ConfigEntry<float> FlashlightFillRange;
+        public static ConfigEntry<float> LampFillPower;
+        public static ConfigEntry<float> LampFillRange;
+        public static ConfigEntry<bool> LampFillOrthogonal;
+        public static ConfigEntry<bool> LampFillDiagonal;
+        public static ConfigEntry<bool> EyeAdaptationEnabled;
+        public static ConfigEntry<float> EyeAdaptationModifierAtMinBrightness;
+        public static ConfigEntry<float> EyeAdaptationModifierAtMaxBrightness;
+        public static ConfigEntry<float> EyeAdaptationFadeTimeAtMinBrightness;
+        public static ConfigEntry<float> EyeAdaptationFadeTimeAtMaxBrightness;
+        public static ConfigEntry<float> EyeAdaptationSensitivity;
+        public static ConfigEntry<float> EyeAdaptationScreenGammaModifierAtMinBrightness;
+        public static ConfigEntry<float> EyeAdaptationScreenGammaModifierAtMaxBrightness;
 
         private static SEGIStationeers SegiStationeersInstance { get; set; }
 
@@ -62,6 +92,7 @@ namespace BeefsSEGIPlus
             Instance = this;
             Log = Logger;
             BindAllConfigs();
+            new Harmony(PluginInfo.PLUGIN_GUID).PatchAll();
             Log.LogInfo($"Plugin {PluginInfo.PLUGIN_NAME} is loaded!");
 
             // Update1_2_0_Popup = AddUpdatePopup(
@@ -99,6 +130,8 @@ namespace BeefsSEGIPlus
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded; ;
             StartCoroutine(InitializeSEGICoroutine());
             gameObject.AddComponent<ConfigMenu>();
+            gameObject.AddComponent<FlashlightFillLight>();
+            gameObject.AddComponent<LampFillLightManager>();
         }
 
         private void Update()
@@ -182,14 +215,53 @@ namespace BeefsSEGIPlus
 
         private void BindAllConfigs()
         {
-            Enabled = Config.Bind("General", "Enable (There is also F11 config menu in-game)", true, "Enable SEGI Plus global illumination. There is an F11 config menu in-game too");
+            Enabled = Config.Bind("General", "Enable (There is also F11 config menu in-game)", false, "Enable SEGI Plus global illumination. There is an F11 config menu in-game too. Default off so you can tune before enabling.");
+            ToggleEnabledHotkey = Config.Bind("General", "Toggle Enabled Hotkey", new KeyboardShortcut(KeyCode.F9),
+                "Toggles SEGI Plus on/off in-game without opening the F11 menu.");
             UseGainMultiplier = Config.Bind("General", "Use x10 Gain Multiplier (applies to Global/Emissive gains)", false, "Multiply GI and Emissive gain values by 10. Why? I dunno, but you can");
             EmissiveLightGain = Config.Bind("Gain Knobs", "Emissive Light Gain", 2.0f,
                 new ConfigDescription("Multiplier for emissive light contribution during voxelization", new AcceptableValueRange<float>(0f, 10f)));
+            // Per-channel gain on the GI add-layer (tone-map stage, not voxelization - see GIToneMap.cs).
+            // EmissiveLightGain above is a single scalar consumed inside SEGI's stock voxelization
+            // shader, which we have no editable source for, so a true per-channel voxelization gain
+            // isn't reachable; this applies the extra R/G/B amplification one stage later instead.
+            GIRedGain = Config.Bind("Gain Knobs", "GI Red Gain", 1.0f,
+                new ConfigDescription("Extra per-channel multiplier on the GI add-layer's red channel. 1 = off.", new AcceptableValueRange<float>(0f, 4f)));
+            GIGreenGain = Config.Bind("Gain Knobs", "GI Green Gain", 1.0f,
+                new ConfigDescription("Extra per-channel multiplier on the GI add-layer's green channel. 1 = off.", new AcceptableValueRange<float>(0f, 4f)));
+            GIBlueGain = Config.Bind("Gain Knobs", "GI Blue Gain", 1.0f,
+                new ConfigDescription("Extra per-channel multiplier on the GI add-layer's blue channel. 1 = off.", new AcceptableValueRange<float>(0f, 4f)));
             GIGain = Config.Bind("Gain Knobs", "Global Illumination Gain", 2.0f,
-                new ConfigDescription("Global illumination gain", new AcceptableValueRange<float>(0f, 8f)));
+                new ConfigDescription("Global illumination gain", new AcceptableValueRange<float>(0f, 20f)));
             SecondaryBounceGain = Config.Bind("Gain Knobs", "Secondary Bounce Gain", 0.25f,
-                new ConfigDescription("Secondary bounce gain", new AcceptableValueRange<float>(0f, 0.75f)));
+                new ConfigDescription("Secondary bounce gain", new AcceptableValueRange<float>(0f, 1f)));
+            GIGamma = Config.Bind("Gain Knobs", "GI Gamma (contribution only)", 1.0f,
+                new ConfigDescription("Gamma on the GI add-layer only. 1 = off/linear.",
+                    new AcceptableValueRange<float>(0.4f, 10f)));
+            GIHighlightGain = Config.Bind("Gain Knobs", "GI Highlight Gain", 0.0f,
+                new ConfigDescription("Bright-only lift after gamma, before toe. 0 = off.",
+                    new AcceptableValueRange<float>(0f, 20f)));
+            GIToe = Config.Bind("Gain Knobs", "GI Toe / Shadow Crush", 0.0f,
+                new ConfigDescription("Black-level crush after gamma/highlight. 0 = off.",
+                    new AcceptableValueRange<float>(0f, 0.2f)));
+            BloomBlur = Config.Bind("Screen Post", "Bloom Blur Radius", 8.0f,
+                new ConfigDescription("Blur radius for screen bloom. Mix 0 disables the stage.",
+                    new AcceptableValueRange<float>(0f, 48f)));
+            BloomGain = Config.Bind("Screen Post", "Bloom Gain", 1.0f,
+                new ConfigDescription("Gain on the blurred bloom buffer.",
+                    new AcceptableValueRange<float>(0f, 8f)));
+            BloomGamma = Config.Bind("Screen Post", "Bloom Gamma", 1.0f,
+                new ConfigDescription("Gamma on the blurred bloom buffer. 1 = linear.",
+                    new AcceptableValueRange<float>(0.2f, 5f)));
+            BloomMix = Config.Bind("Screen Post", "Bloom Mix", 0.0f,
+                new ConfigDescription("0 = bloom stage off. Adds processed blur onto the composite.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            ScreenGamma = Config.Bind("Screen Post", "Screen Gamma", 1.0f,
+                new ConfigDescription("Gamma on the full composited 3D frame after bloom. 1 = off.",
+                    new AcceptableValueRange<float>(0.2f, 5f)));
+            DitherStrength = Config.Bind("Screen Post", "Dither Strength", 0f,
+                new ConfigDescription("Blue-noise dither on the final frame, to break up color-banding rings in smooth light falloff. 0 = off, 1 = one full 8-bit step.",
+                    new AcceptableValueRange<float>(0f, 2f)));
             EmissiveBubbleEnabled = Config.Bind("Gain Knobs", "Emissive Exclusion Bubble", true,
                 "Prevents held items and suit from casting emissive light into the scene.");
             QualityLevel = Config.Bind("Performance", "Quality Level - 0 for Low, 4 for Ultra Extreme.", 1,
@@ -197,6 +269,10 @@ namespace BeefsSEGIPlus
                     new AcceptableValueRange<int>(0, 4)));
             DenseVoxelMode = Config.Bind("Performance", "High Density Mode", false,
                 "Finer GI detail at the cost of shorter range.");
+            HighDensityRangeStep = Config.Bind("Performance", "High Density Range Step", 0,
+                new ConfigDescription(
+                    "0 = stock High Density (half range, double density). Each step trades a bit of that density back for range; the top step is full stock range, still at double density (so it costs more voxels). Inert when High Density is off.",
+                    new AcceptableValueRange<int>(0, ConfigData.HighDensityRangeMaxStep)));
             ForwardOriginBias = Config.Bind("Performance", "Forward Origin Bias", true,
                 "Pushes the voxel volume 25% forward in the camera's facing direction.");
             LightweightMode = Config.Bind("Performance", "**Lightweight Mode**", false,
@@ -218,6 +294,48 @@ namespace BeefsSEGIPlus
             ConeTraceBiasOffset = Config.Bind("Advanced", "Cone Trace Bias Offset", 0f,
                 new ConfigDescription("Offset forwHow far from surfaces GI probes sample, Lower = more self-occlusion. Higher = more light leakage. 0 = default.",
                     new AcceptableValueRange<float>(-0.3f, 0.6f)));
+            InnerOcclusionLayers = Config.Bind("Advanced", "Inner Occlusion Layers", 1,
+                new ConfigDescription("How many voxel layers around near occluders count as solid. Higher blocks more light leaking around thin/small objects but can over-darken nearby surfaces. 1 = default.",
+                    new AcceptableValueRange<int>(0, 4)));
+            FlashlightFillPower = Config.Bind("Flashlight Fill Light", "Strength", 0f,
+                new ConfigDescription("Fake white point light intensity at your active flashlight/headlamp. 0 = off, skips entirely.",
+                    new AcceptableValueRange<float>(0f, 5f)));
+            FlashlightFillRange = Config.Bind("Flashlight Fill Light", "Falloff Range", 3f,
+                new ConfigDescription("How far the fake fill light reaches before fading out.",
+                    new AcceptableValueRange<float>(0.5f, 10f)));
+            LampFillPower = Config.Bind("Lamp Fill Light", "Strength", 0f,
+                new ConfigDescription("Fake point light intensity for each of the 8 lights ringing every active stationary lamp. 0 = off, skips entirely.",
+                    new AcceptableValueRange<float>(0f, 5f)));
+            LampFillRange = Config.Bind("Lamp Fill Light", "Falloff Range", 3f,
+                new ConfigDescription("How far each ring light reaches before fading out.",
+                    new AcceptableValueRange<float>(0.5f, 10f)));
+            LampFillOrthogonal = Config.Bind("Lamp Fill Light", "Orthogonal Ring Lights", true,
+                "Places the 4 ring lights at 0/90/180/270 degrees around each lamp. Both this and Diagonal off = feature fully off regardless of Strength.");
+            LampFillDiagonal = Config.Bind("Lamp Fill Light", "Diagonal Ring Lights", true,
+                "Places the 4 ring lights at 45/135/225/315 degrees around each lamp. Both this and Orthogonal off = feature fully off regardless of Strength.");
+            EyeAdaptationEnabled = Config.Bind("Eye Adaptation", "Enable Eye Adaptation", false,
+                "Fades a runtime-only GI Gain modifier based on measured screen brightness. Does not change your GI Gain slider value.");
+            EyeAdaptationModifierAtMinBrightness = Config.Bind("Eye Adaptation", "Modifier at Min Brightness", 2.0f,
+                new ConfigDescription("GI Gain modifier applied when the measured screen brightness is at its lowest.",
+                    new AcceptableValueRange<float>(-30f, 30f)));
+            EyeAdaptationModifierAtMaxBrightness = Config.Bind("Eye Adaptation", "Modifier at Max Brightness", -2.0f,
+                new ConfigDescription("GI Gain modifier applied when the measured screen brightness is at its highest.",
+                    new AcceptableValueRange<float>(-30f, 30f)));
+            EyeAdaptationFadeTimeAtMinBrightness = Config.Bind("Eye Adaptation", "Fade Time at Min Brightness", 4.0f,
+                new ConfigDescription("Seconds to fade toward the Min Brightness modifier.",
+                    new AcceptableValueRange<float>(0.1f, 15f)));
+            EyeAdaptationFadeTimeAtMaxBrightness = Config.Bind("Eye Adaptation", "Fade Time at Max Brightness", 1.5f,
+                new ConfigDescription("Seconds to fade toward the Max Brightness modifier.",
+                    new AcceptableValueRange<float>(0.1f, 15f)));
+            EyeAdaptationSensitivity = Config.Bind("Eye Adaptation", "Sensitivity", 1.0f,
+                new ConfigDescription("Multiplies measured brightness before it's mapped to Min/Max. Turn up if it isn't reacting enough to what you see; down if it overreacts.",
+                    new AcceptableValueRange<float>(0.1f, 10f)));
+            EyeAdaptationScreenGammaModifierAtMinBrightness = Config.Bind("Eye Adaptation", "Screen Gamma Modifier at Min Brightness", 0f,
+                new ConfigDescription("Added to Screen Gamma when measured screen brightness is at its lowest. 0 = inactive.",
+                    new AcceptableValueRange<float>(-0.8f, 4f)));
+            EyeAdaptationScreenGammaModifierAtMaxBrightness = Config.Bind("Eye Adaptation", "Screen Gamma Modifier at Max Brightness", 0f,
+                new ConfigDescription("Added to Screen Gamma when measured screen brightness is at its highest. 0 = inactive.",
+                    new AcceptableValueRange<float>(-0.8f, 4f)));
         }
 
         private IEnumerator InitializeSEGICoroutine()
@@ -421,7 +539,34 @@ namespace BeefsSEGIPlus
         public static bool HalfResolution => HalfResolutionLevels[CurrentQualityLevel];
         public static bool VoxelAntiAliasing => VoxelAntiAliasingLevels[CurrentQualityLevel];
         public static bool DenseVoxelMode => SEGIPlugin.DenseVoxelMode?.Value ?? false;
-        private static float DenseScale => DenseVoxelMode ? 0.5f : 1.0f;
+        // Inert unless High Density is on. Step 0 = stock HD (half box, base voxels).
+        // Each step trades density back for range; top step = full box, double voxels.
+        // Density (voxels per world unit) is exactly 2x normal at every step in between.
+        public const int HighDensityRangeMaxStep = 8;
+        public static int HighDensityRangeStep =>
+            DenseVoxelMode ? Mathf.Clamp(SEGIPlugin.HighDensityRangeStep?.Value ?? 0, 0, HighDensityRangeMaxStep) : 0;
+        private static float HighDensityRangeT => HighDensityRangeStep / (float)HighDensityRangeMaxStep;
+        private static float DenseScale => DenseVoxelMode ? 0.5f * (1f + HighDensityRangeT) : 1.0f;
+        public static int EffectiveVoxelResolution
+        {
+            get
+            {
+                int baseRes = (int)VoxelResolutions[CurrentQualityLevel];
+                return DenseVoxelMode ? Mathf.RoundToInt(baseRes * (1f + HighDensityRangeT)) : baseRes;
+            }
+        }
+        // Preview helpers for the F11 slider label - what step N would produce, without committing it.
+        public static float PreviewVoxelSpaceSizeAtStep(int step)
+        {
+            float t = Mathf.Clamp01(step / (float)HighDensityRangeMaxStep);
+            return VoxelSpaceSizes[CurrentQualityLevel] * 0.5f * (1f + t);
+        }
+        public static int PreviewVoxelResolutionAtStep(int step)
+        {
+            float t = Mathf.Clamp01(step / (float)HighDensityRangeMaxStep);
+            int baseRes = (int)VoxelResolutions[CurrentQualityLevel];
+            return Mathf.RoundToInt(baseRes * (1f + t));
+        }
         public static float VoxelSpaceSize => VoxelSpaceSizes[CurrentQualityLevel] * DenseScale;
         public static float ShadowSpaceSize => ShadowSpaceSizes[CurrentQualityLevel] * DenseScale;
         public static bool GaussianMipFilter => GaussianMipFilterLevels[CurrentQualityLevel];
@@ -436,7 +581,9 @@ namespace BeefsSEGIPlus
         {
             get
             {
-                float baseValue = SEGIPlugin.GIGain?.Value ?? 0.6f;
+                // Eye adaptation is added here, at read-time, so the persisted slider
+                // value in the config file never reflects the runtime modifier.
+                float baseValue = (SEGIPlugin.GIGain?.Value ?? 0.6f) + EyeAdaptation.CurrentModifier;
                 bool useMultiplier = SEGIPlugin.UseGainMultiplier?.Value ?? false;
                 return useMultiplier ? baseValue * 10f : baseValue;
             }
@@ -461,11 +608,32 @@ namespace BeefsSEGIPlus
                 return SEGIPlugin.SecondaryBounceGain?.Value ?? 0.4f;
             }
         }
+        public static float GIGamma => Mathf.Clamp(SEGIPlugin.GIGamma?.Value ?? 1f, 0.4f, 10f);
+        public static float GIHighlightGain => Mathf.Clamp(SEGIPlugin.GIHighlightGain?.Value ?? 0f, 0f, 20f);
+        public static float GIToe => Mathf.Clamp(SEGIPlugin.GIToe?.Value ?? 0f, 0f, 0.2f);
+        public static float GIRedGain => Mathf.Clamp(SEGIPlugin.GIRedGain?.Value ?? 1f, 0f, 4f);
+        public static float GIGreenGain => Mathf.Clamp(SEGIPlugin.GIGreenGain?.Value ?? 1f, 0f, 4f);
+        public static float GIBlueGain => Mathf.Clamp(SEGIPlugin.GIBlueGain?.Value ?? 1f, 0f, 4f);
+        public static float BloomBlur => Mathf.Clamp(SEGIPlugin.BloomBlur?.Value ?? 8f, 0f, 48f);
+        public static float BloomGain => Mathf.Clamp(SEGIPlugin.BloomGain?.Value ?? 1f, 0f, 8f);
+        public static float BloomGamma => Mathf.Clamp(SEGIPlugin.BloomGamma?.Value ?? 1f, 0.2f, 5f);
+        public static float BloomMix => Mathf.Clamp01(SEGIPlugin.BloomMix?.Value ?? 0f);
+        public static float ScreenGamma
+        {
+            get
+            {
+                // Eye adaptation is added here, at read-time, same pattern as GIGain above -
+                // the persisted slider value (meant to stay at 1) never reflects the runtime modifier.
+                float baseValue = (SEGIPlugin.ScreenGamma?.Value ?? 1f) + EyeAdaptation.CurrentGammaModifier;
+                return Mathf.Clamp(baseValue, 0.2f, 5f);
+            }
+        }
+        public static float DitherStrength => Mathf.Clamp(SEGIPlugin.DitherStrength?.Value ?? 0f, 0f, 2f);
         public static float OcclusionStrength => Mathf.Clamp(0.86f + (SEGIPlugin.OcclusionStrengthOffset?.Value ?? 0f), 0.5f, 1.6f);
         private static readonly float[] NearOcclusionStrengths = { 0.42f, 0.42f, 0.86f, 0.86f, 0.86f };
         public static float NearOcclusionStrength => NearOcclusionStrengths[CurrentQualityLevel];
         public static float OcclusionPower => 1.0f;
-        public static int InnerOcclusionLayers => 1;
+        public static int InnerOcclusionLayers => Mathf.Clamp(SEGIPlugin.InnerOcclusionLayers?.Value ?? 1, 0, 4);
         public static int SecondaryCones => 4;
         public static float SecondaryOcclusionStrength => 1.25f;
         public static float FarOcclusionStrength => 0.86f;
